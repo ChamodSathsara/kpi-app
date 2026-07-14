@@ -66,10 +66,10 @@ function CreateKpiInner() {
         .then((res) => setDepartments(res.data))
         .catch(() => {});
     } else {
-      apiClient
-        .getMyTeam()
-        .then((res) => setTeam(res.data))
-        .catch(() => {});
+      apiClient.getMyTeam().then((res) => {
+        console.log("team raw:", res.data);
+        setTeam(res.data);
+      });
     }
   }, [isCeo]);
 
@@ -153,6 +153,7 @@ function CreateKpiInner() {
   }
 
   async function handleSubmit() {
+    console.log(employeeId, periodId, rows);
     if (!employeeId || !periodId) {
       toast.error("Select an employee and an evaluation period.");
       return;
@@ -221,16 +222,19 @@ function CreateKpiInner() {
               )}
               <div className="space-y-1.5">
                 <Label>Employee</Label>
-                <Select value={employeeId} onValueChange={setEmployeeId}>
+                <Select
+                  value={employeeId}
+                  onValueChange={(val) => {
+                    console.log("employee selected:", val);
+                    setEmployeeId(val);
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select employee" />
                   </SelectTrigger>
                   <SelectContent>
-                    {team.map((m , key) => (
-                      <SelectItem
-                        key={key}
-                        value={String(m.employeeId)}
-                      >
+                    {team.map((m, key) => (
+                      <SelectItem key={key} value={String(m.userId)}>
                         {m.firstName} {m.lastName}
                       </SelectItem>
                     ))}

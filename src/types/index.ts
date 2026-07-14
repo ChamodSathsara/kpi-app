@@ -129,7 +129,7 @@ export interface UpdateEvaluationPeriodInput {
 
 // ===== Team =====
 export interface TeamMember {
-  employeeId: number;
+  userId: number;
   employeeNo: string;
   firstName: string;
   lastName: string;
