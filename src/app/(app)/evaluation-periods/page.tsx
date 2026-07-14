@@ -15,12 +15,39 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, PlusCircle, Pencil, Trash2, Power } from "lucide-react";
 
-const emptyForm = { periodName: "", startDate: "", endDate: "", isActive: false };
+const emptyForm = {
+  name: "",
+  year: new Date().getFullYear(),
+  startDate: "",
+  endDate: "",
+};
+
+function isActiveStatus(status: string) {
+  return status.toLowerCase() === "active";
+}
+
+function statusBadgeVariant(status: string) {
+  switch (status.toLowerCase()) {
+    case "active":
+      return "success" as const;
+    case "completed":
+      return "secondary" as const;
+    default:
+      return "outline" as const;
+  }
+}
 
 export default function EvaluationPeriodsPage() {
   const [periods, setPeriods] = useState<EvaluationPeriod[] | null>(null);
@@ -28,9 +55,13 @@ export default function EvaluationPeriodsPage() {
   const [editing, setEditing] = useState<EvaluationPeriod | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
+  const [activatingId, setActivatingId] = useState<number | null>(null);
 
   function load() {
-    apiClient.getEvaluationPeriods().then((res) => setPeriods(res.data)).catch(() => setPeriods([]));
+    apiClient
+      .getEvaluationPeriods()
+      .then((res) => setPeriods(res.data))
+      .catch(() => setPeriods([]));
   }
 
   useEffect(load, []);
@@ -43,7 +74,12 @@ export default function EvaluationPeriodsPage() {
 
   function openEdit(p: EvaluationPeriod) {
     setEditing(p);
-    setForm({ periodName: p.periodName, startDate: p.startDate, endDate: p.endDate, isActive: p.isActive });
+    setForm({
+      name: p.name,
+      year: p.year,
+      startDate: p.startDate,
+      endDate: p.endDate,
+    });
     setDialogOpen(true);
   }
 
@@ -77,13 +113,16 @@ export default function EvaluationPeriodsPage() {
     }
   }
 
-  async function handleToggleActive(p: EvaluationPeriod) {
+  async function handleActivate(p: EvaluationPeriod) {
+    setActivatingId(p.periodId);
     try {
-      await apiClient.activateEvaluationPeriod(p.periodId, !p.isActive);
-      toast.success(p.isActive ? "Period deactivated." : "Period activated.");
+      await apiClient.activateEvaluationPeriod(p.periodId);
+      toast.success(`"${p.name}" is now the active period.`);
       load();
     } catch {
-      toast.error("Could not update period status.");
+      toast.error("Could not activate period.");
+    } finally {
+      setActivatingId(null);
     }
   }
 
@@ -104,7 +143,9 @@ export default function EvaluationPeriodsPage() {
           <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading periods…
         </div>
       )}
-      {periods && periods.length === 0 && <EmptyState title="No evaluation periods yet" />}
+      {periods && periods.length === 0 && (
+        <EmptyState title="No evaluation periods yet" />
+      )}
 
       {periods && periods.length > 0 && (
         <Card>
@@ -113,6 +154,7 @@ export default function EvaluationPeriodsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Period</TableHead>
+                  <TableHead>Year</TableHead>
                   <TableHead>Start</TableHead>
                   <TableHead>End</TableHead>
                   <TableHead>Status</TableHead>
@@ -120,29 +162,57 @@ export default function EvaluationPeriodsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {periods.map((p) => (
-                  <TableRow key={p.periodId}>
-                    <TableCell className="font-medium">{p.periodName}</TableCell>
-                    <TableCell className="text-sm">{p.startDate}</TableCell>
-                    <TableCell className="text-sm">{p.endDate}</TableCell>
-                    <TableCell>
-                      <Badge variant={p.isActive ? "success" : "outline"}>
-                        {p.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => handleToggleActive(p)} title="Toggle active">
-                        <Power className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(p)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(p.periodId)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {periods.map((p) => {
+                  const active = isActiveStatus(p.status);
+                  return (
+                    <TableRow key={p.periodId}>
+                      <TableCell className="font-medium">{p.name}</TableCell>
+                      <TableCell className="text-sm">{p.year}</TableCell>
+                      <TableCell className="text-sm">{p.startDate}</TableCell>
+                      <TableCell className="text-sm">{p.endDate}</TableCell>
+                      <TableCell>
+                        <Badge variant={statusBadgeVariant(p.status)}>
+                          {p.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleActivate(p)}
+                          disabled={active || activatingId === p.periodId}
+                          title={
+                            active ? "Already active" : "Activate this period"
+                          }
+                        >
+                          {activatingId === p.periodId ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Power
+                              className={
+                                active ? "h-4 w-4 text-green-600" : "h-4 w-4"
+                              }
+                            />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEdit(p)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(p.periodId)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </CardContent>
@@ -158,9 +228,21 @@ export default function EvaluationPeriodsPage() {
             <div className="space-y-1.5">
               <Label>Period name</Label>
               <Input
-                value={form.periodName}
-                onChange={(e) => setForm((f) => ({ ...f, periodName: e.target.value }))}
-                placeholder="e.g. 2026 Year End"
+                value={form.name}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value }))
+                }
+                placeholder="e.g. Year End"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Year</Label>
+              <Input
+                type="number"
+                value={form.year}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, year: Number(e.target.value) }))
+                }
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -169,7 +251,9 @@ export default function EvaluationPeriodsPage() {
                 <Input
                   type="date"
                   value={form.startDate}
-                  onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, startDate: e.target.value }))
+                  }
                 />
               </div>
               <div className="space-y-1.5">
@@ -177,7 +261,9 @@ export default function EvaluationPeriodsPage() {
                 <Input
                   type="date"
                   value={form.endDate}
-                  onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, endDate: e.target.value }))
+                  }
                 />
               </div>
             </div>

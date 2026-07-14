@@ -36,7 +36,7 @@ export default function SettingsPage() {
     }
     setIsSaving(true);
     try {
-      await apiClient.changePassword(currentPassword, newPassword);
+      await apiClient.changePassword(currentPassword, newPassword ,confirmPassword);
       toast.success("Password changed successfully.");
       setCurrentPassword("");
       setNewPassword("");

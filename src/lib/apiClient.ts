@@ -22,6 +22,11 @@ import type {
   AdminDashboard,
   EvaluationMarkInput,
   SelfEvaluation,
+  UserSearchParams,
+  PagedResult,
+  UpdateUserInput,
+  CreateEvaluationPeriodInput,
+  UpdateEvaluationPeriodInput,
 } from "@/types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://localhost:5001";
@@ -120,8 +125,8 @@ class ApiClient {
   logout() {
     return this.post<null>("/api/auth/logout");
   }
-  changePassword(currentPassword: string, newPassword: string) {
-    return this.post<null>("/api/auth/change-password", { currentPassword, newPassword });
+  changePassword(currentPassword: string, newPassword: string , ConfirmNewPassword: string) {
+    return this.post<null>("/api/auth/change-password", { currentPassword, newPassword, ConfirmNewPassword });
   }
   getProfile() {
     return this.get<User>("/api/auth/profile");
@@ -158,21 +163,21 @@ class ApiClient {
     return this.post<KpiAssignment>("/api/kpis", payload);
   }
 
-  // ===================== Evaluation Periods =====================
+// ===================== Evaluation Periods =====================
   getEvaluationPeriods() {
     return this.get<EvaluationPeriod[]>("/api/evaluation-periods");
   }
-  createEvaluationPeriod(payload: { periodName: string; startDate: string; endDate: string; isActive: boolean }) {
+  createEvaluationPeriod(payload: CreateEvaluationPeriodInput) {
     return this.post<EvaluationPeriod>("/api/evaluation-periods", payload);
   }
-  updateEvaluationPeriod(periodId: number, payload: { periodName: string; startDate: string; endDate: string; isActive: boolean }) {
+  updateEvaluationPeriod(periodId: number, payload: UpdateEvaluationPeriodInput) {
     return this.put<EvaluationPeriod>(`/api/evaluation-periods/${periodId}`, payload);
   }
   deleteEvaluationPeriod(periodId: number) {
     return this.del<null>(`/api/evaluation-periods/${periodId}`);
   }
-  activateEvaluationPeriod(periodId: number, isActive: boolean) {
-    return this.patch<null>(`/api/evaluation-periods/${periodId}/activate`, { isActive });
+  activateEvaluationPeriod(periodId: number) {
+    return this.patch<EvaluationPeriod>(`/api/evaluation-periods/${periodId}/activate`);
   }
 
   // ===================== Competencies =====================
@@ -278,8 +283,11 @@ class ApiClient {
   }
 
   // ===================== Admin: Users =====================
-  getUsers() {
-    return this.get<AdminUser[]>("/api/users");
+  getUsers(params?: UserSearchParams) {
+    return this.get<PagedResult<AdminUser>>("/api/users", { params });
+  }
+  getManagementUsers() {
+    return this.get<AdminUser[]>("/api/users/management");
   }
   getUser(userId: number) {
     return this.get<AdminUser>(`/api/users/${userId}`);
@@ -290,8 +298,11 @@ class ApiClient {
       payload
     );
   }
-  updateUser(userId: number, payload: Partial<CreateUserInput>) {
+  updateUser(userId: number, payload: UpdateUserInput) {
     return this.put<null>(`/api/users/${userId}`, payload);
+  }
+  updateUserStatus(userId: number, isActive: boolean) {
+    return this.patch<null>(`/api/users/${userId}/status`, { isActive });
   }
   deleteUser(userId: number) {
     return this.del<null>(`/api/users/${userId}`);

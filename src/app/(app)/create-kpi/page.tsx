@@ -4,10 +4,22 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import apiClient from "@/lib/apiClient";
 import { useAuth } from "@/lib/auth-context";
-import type { EvaluationPeriod, TeamMember, CreateKpiDetailInput, KpiAssignment, Department } from "@/types";
+import type {
+  EvaluationPeriod,
+  TeamMember,
+  CreateKpiDetailInput,
+  KpiAssignment,
+  Department,
+} from "@/types";
 import { ROLE } from "@/types";
 import { PageHeader, StatusBadge } from "@/components/shared/display";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +43,9 @@ function CreateKpiInner() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
-  const [employeeId, setEmployeeId] = useState<string>(preselectedEmployeeId ?? "");
+  const [employeeId, setEmployeeId] = useState<string>(
+    preselectedEmployeeId ?? "",
+  );
   const [periodId, setPeriodId] = useState<string>("");
   const [rows, setRows] = useState<CreateKpiDetailInput[]>([
     { kpiName: "", description: "", weightPercentage: 0 },
@@ -42,13 +56,70 @@ function CreateKpiInner() {
   const isCeo = user?.roleId === ROLE.CEO;
 
   useEffect(() => {
-    apiClient.getEvaluationPeriods().then((res) => setPeriods(res.data)).catch(() => {});
+    apiClient
+      .getEvaluationPeriods()
+      .then((res) => setPeriods(res.data))
+      .catch(() => {});
     if (isCeo) {
-      apiClient.getDepartments().then((res) => setDepartments(res.data)).catch(() => {});
+      apiClient
+        .getDepartments()
+        .then((res) => setDepartments(res.data))
+        .catch(() => {});
     } else {
-      apiClient.getMyTeam().then((res) => setTeam(res.data)).catch(() => {});
+      apiClient
+        .getMyTeam()
+        .then((res) => setTeam(res.data))
+        .catch(() => {});
     }
   }, [isCeo]);
+
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     console.log("Evaluation data loading started...");
+  //     console.log("Is CEO:", isCeo);
+
+  //     try {
+  //       // Get evaluation periods
+  //       console.log("Fetching evaluation periods...");
+  //       const periodsRes = await apiClient.getEvaluationPeriods();
+
+  //       console.log("Evaluation periods response:", periodsRes);
+
+  //       setPeriods(periodsRes.data);
+
+  //       console.log("Evaluation periods set successfully:", periodsRes.data);
+
+  //       // CEO flow
+  //       if (isCeo) {
+  //         console.log("Fetching departments for CEO...");
+
+  //         const departmentsRes = await apiClient.getDepartments();
+
+  //         console.log("Departments response:", departmentsRes);
+
+  //         setDepartments(departmentsRes.data);
+
+  //         console.log("Departments set successfully:", departmentsRes.data);
+  //       }
+  //       // Non CEO flow
+  //       else {
+  //         console.log("Fetching team members...");
+
+  //         const teamRes = await apiClient.getMyTeam();
+
+  //         console.log("Team response:", teamRes);
+
+  //         setTeam(teamRes.data);
+
+  //         console.log("Team set successfully:", teamRes.data);
+  //       }
+  //     } catch (error) {
+  //       console.error("Error while loading evaluation data:", error);
+  //     }
+  //   };
+
+  //   fetchData();
+  // }, [isCeo]);
 
   useEffect(() => {
     if (isCeo && selectedDepartment) {
@@ -59,14 +130,22 @@ function CreateKpiInner() {
     }
   }, [isCeo, selectedDepartment]);
 
-  const totalWeight = rows.reduce((sum, r) => sum + (Number(r.weightPercentage) || 0), 0);
+  const totalWeight = rows.reduce(
+    (sum, r) => sum + (Number(r.weightPercentage) || 0),
+    0,
+  );
 
   function updateRow(index: number, patch: Partial<CreateKpiDetailInput>) {
-    setRows((prev) => prev.map((r, i) => (i === index ? { ...r, ...patch } : r)));
+    setRows((prev) =>
+      prev.map((r, i) => (i === index ? { ...r, ...patch } : r)),
+    );
   }
 
   function addRow() {
-    setRows((prev) => [...prev, { kpiName: "", description: "", weightPercentage: 0 }]);
+    setRows((prev) => [
+      ...prev,
+      { kpiName: "", description: "", weightPercentage: 0 },
+    ]);
   }
 
   function removeRow(index: number) {
@@ -105,26 +184,34 @@ function CreateKpiInner() {
 
   return (
     <div>
-      <PageHeader title="Create KPI" description="Assign weighted KPIs to an employee for an evaluation period." />
+      <PageHeader
+        title="Create KPI"
+        description="Assign weighted KPIs to an employee for an evaluation period."
+      />
 
       <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
         <Card>
           <CardHeader>
             <CardTitle>New KPI assignment</CardTitle>
-            <CardDescription>Weights across all KPIs must add up to 100%.</CardDescription>
+            <CardDescription>
+              Weights across all KPIs must add up to 100%.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="grid gap-3 sm:grid-cols-2">
               {isCeo && (
                 <div className="space-y-1.5">
                   <Label>Department</Label>
-                  <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                  <Select
+                    value={selectedDepartment}
+                    onValueChange={setSelectedDepartment}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select department" />
                     </SelectTrigger>
                     <SelectContent>
-                      {departments.map((d) => (
-                        <SelectItem key={d.departmentId} value={String(d.departmentId)}>
+                      {departments.map((d, index) => (
+                        <SelectItem key={index} value={String(d.departmentId)}>
                           {d.departmentName}
                         </SelectItem>
                       ))}
@@ -139,8 +226,11 @@ function CreateKpiInner() {
                     <SelectValue placeholder="Select employee" />
                   </SelectTrigger>
                   <SelectContent>
-                    {team.map((m) => (
-                      <SelectItem key={m.employeeId} value={String(m.employeeId)}>
+                    {team.map((m , key) => (
+                      <SelectItem
+                        key={key}
+                        value={String(m.employeeId)}
+                      >
                         {m.firstName} {m.lastName}
                       </SelectItem>
                     ))}
@@ -154,9 +244,9 @@ function CreateKpiInner() {
                     <SelectValue placeholder="Select period" />
                   </SelectTrigger>
                   <SelectContent>
-                    {periods.map((p) => (
-                      <SelectItem key={p.periodId} value={String(p.periodId)}>
-                        {p.periodName}
+                    {periods.map((p, index) => (
+                      <SelectItem key={index} value={String(p.periodId)}>
+                        {p.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -172,7 +262,10 @@ function CreateKpiInner() {
                       KPI {i + 1}
                     </span>
                     {rows.length > 1 && (
-                      <button onClick={() => removeRow(i)} className="text-muted-foreground hover:text-destructive">
+                      <button
+                        onClick={() => removeRow(i)}
+                        className="text-muted-foreground hover:text-destructive"
+                      >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}
@@ -181,7 +274,9 @@ function CreateKpiInner() {
                     <Input
                       placeholder="KPI name"
                       value={row.kpiName}
-                      onChange={(e) => updateRow(i, { kpiName: e.target.value })}
+                      onChange={(e) =>
+                        updateRow(i, { kpiName: e.target.value })
+                      }
                     />
                     <Input
                       type="number"
@@ -190,14 +285,20 @@ function CreateKpiInner() {
                       placeholder="Weight %"
                       className="sm:w-28"
                       value={row.weightPercentage || ""}
-                      onChange={(e) => updateRow(i, { weightPercentage: Number(e.target.value) })}
+                      onChange={(e) =>
+                        updateRow(i, {
+                          weightPercentage: Number(e.target.value),
+                        })
+                      }
                     />
                   </div>
                   <Textarea
                     className="mt-3"
                     placeholder="Description"
                     value={row.description}
-                    onChange={(e) => updateRow(i, { description: e.target.value })}
+                    onChange={(e) =>
+                      updateRow(i, { description: e.target.value })
+                    }
                   />
                 </div>
               ))}
@@ -208,13 +309,23 @@ function CreateKpiInner() {
 
             <div className="flex items-center justify-between rounded-md bg-muted px-4 py-2.5 text-sm">
               <span>Total weight</span>
-              <span className={`font-mono-data font-semibold ${totalWeight === 100 ? "text-success" : "text-destructive"}`}>
+              <span
+                className={`font-mono-data font-semibold ${totalWeight === 100 ? "text-success" : "text-destructive"}`}
+              >
                 {totalWeight}%
               </span>
             </div>
 
-            <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full sm:w-auto">
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto"
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
               Create KPI assignment
             </Button>
           </CardContent>
@@ -223,14 +334,21 @@ function CreateKpiInner() {
         <Card>
           <CardHeader>
             <CardTitle>Recently created</CardTitle>
-            <CardDescription>KPI assignments you've created this session.</CardDescription>
+            <CardDescription>
+              KPI assignments you've created this session.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {created.length === 0 && (
-              <p className="text-sm text-muted-foreground">Nothing created yet.</p>
+              <p className="text-sm text-muted-foreground">
+                Nothing created yet.
+              </p>
             )}
             {created.map((a) => (
-              <div key={a.assignmentId} className="rounded-md border border-border p-3">
+              <div
+                key={a.assignmentId}
+                className="rounded-md border border-border p-3"
+              >
                 <div className="flex items-center justify-between">
                   <p className="font-medium">{a.employeeName}</p>
                   <StatusBadge status={a.status} />

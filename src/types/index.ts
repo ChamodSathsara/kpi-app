@@ -104,11 +104,27 @@ export interface SelfEvaluation {
 
 // ===== Periods =====
 export interface EvaluationPeriod {
+  periodName: ReactNode;
   periodId: number;
-  periodName: string;
+  name: string;
+  year: number;
+  startDate: string; // DateOnly serializes as "yyyy-MM-dd"
+  endDate: string;
+  status: string; // e.g. "Draft" | "Active" | "Completed" — confirm exact values with backend
+}
+
+export interface CreateEvaluationPeriodInput {
+  name: string;
+  year: number;
   startDate: string;
   endDate: string;
-  isActive: boolean;
+}
+
+export interface UpdateEvaluationPeriodInput {
+  name: string;
+  year: number;
+  startDate: string;
+  endDate: string;
 }
 
 // ===== Team =====
@@ -268,6 +284,8 @@ export interface AdminUser {
   departmentName: string | null;
   designationId: number | null;
   designationName: string | null;
+  reportsTo: number | null;
+  managerName: string | null;
   isActive: boolean;
   createdDate?: string;
 }
@@ -277,12 +295,11 @@ export interface CreateUserInput {
   firstName: string;
   lastName: string;
   email: string;
+  password: string;
   roleId: number;
-  departmentId: number;
-  designationId: number;
+  departmentId: number | null;
+  designationId: number | null;
   reportsTo: number | null;
-  isActive: boolean;
-  temporaryPassword: string;
 }
 
 export interface AdminDashboard {
@@ -294,4 +311,30 @@ export interface AdminDashboard {
   completionPercentage: number;
   departmentSummary: { departmentName: string; employeeCount: number; completionPercentage: number }[];
   recentActivities: { activityId: number; description: string; timestamp: string; performedBy: string }[];
+}
+export interface UpdateUserInput {
+  firstName: string;
+  lastName: string;
+  email: string;
+  roleId: number;
+  departmentId: number | null;
+  designationId: number | null;
+  reportsTo: number | null;
+}
+
+export interface UserSearchParams {
+  keyword?: string;
+  roleId?: number;
+  departmentId?: number;
+  isActive?: boolean;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface PagedResult<T> {
+  items: T[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
 }
