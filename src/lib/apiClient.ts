@@ -372,21 +372,6 @@ getMyTeam() {
   getRoles() {
     return this.get<Role[]>("/api/roles");
   }
-
-  saveCompetencyScore(hodEvaluationId: number, competencyId: number, score: number, remarks: string) {
-  return this.post(
-    `/api/competency-evaluations?hodEvaluationId=${hodEvaluationId}`,
-    { competencyId, score, remarks },
-  );
-}
-updateCompetencyScore(id: number, competencyId: number, score: number, remarks: string) {
-  return this.put(`/api/competency-evaluations/${id}`, { competencyId, score, remarks });
-}
-getCompetencyScoresForHodEvaluation(hodEvaluationId: number) {
-  return this.get<{ competencyEvaluationId: number; competencyId: number; score: number; remarks: string }[]>(
-    `/api/competency-evaluations/${hodEvaluationId}`,
-  );
-}
 }
 
 export const apiClient = new ApiClient();
