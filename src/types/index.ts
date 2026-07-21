@@ -91,17 +91,9 @@ export interface CreateKpiRequest {
 }
 
 // ===== Self / Supervisor / HOD Evaluations =====
-// export interface EvaluationMarkInput {
-//   detailId: number;
-//   score: number;
-// }
-
-
-
 export interface EvaluationMarkInput {
-  kpiAssignmentDetailId: number;
-  marks: number;
-  comments: string;
+  detailId: number;
+  score: number;
 }
 
 export interface SelfEvaluation {
@@ -202,45 +194,45 @@ export interface Achievement {
 }
 
 // ===== Results =====
-// export interface ResultDetail {
-//   assignmentId: number;
-//   employeeId: number;
-//   employeeName: string;
-//   employeeNo?: string;
-//   designation?: string;
-//   department?: string;
-//   periodName: string;
-//   grade: string | null;
-//   status: string;
-//   kpiEvaluation: {
-//     weightPercentage: number;
-//     totalScore?: number;
-//     score?: number;
-//     details: KpiDetail[];
-//   };
-//   competencies: {
-//     weightPercentage: number;
-//     score: number;
-//     details?: {
-//       competencyId: number;
-//       name: string;
-//       employeeRating?: number;
-//       supervisorRating?: number;
-//       hodRating?: number;
-//     }[];
-//   };
-//   achievements: {
-//     weightPercentage: number;
-//     score: number;
-//     details?: Achievement[];
-//   };
-//   attendance?: {
-//     attendancePercentage: number;
-//     marksDeduction: number;
-//   };
-//   recommendation?: string;
-//   hodComment?: string;
-// }
+export interface ResultDetail {
+  assignmentId: number;
+  employeeId: number;
+  employeeName: string;
+  employeeNo?: string;
+  designation?: string;
+  department?: string;
+  periodName: string;
+  grade: string | null;
+  status: string;
+  kpiEvaluation: {
+    weightPercentage: number;
+    totalScore?: number;
+    score?: number;
+    details: KpiDetail[];
+  };
+  competencies: {
+    weightPercentage: number;
+    score: number;
+    details?: {
+      competencyId: number;
+      name: string;
+      employeeRating?: number;
+      supervisorRating?: number;
+      hodRating?: number;
+    }[];
+  };
+  achievements: {
+    weightPercentage: number;
+    score: number;
+    details?: Achievement[];
+  };
+  attendance?: {
+    attendancePercentage: number;
+    marksDeduction: number;
+  };
+  recommendation?: string;
+  hodComment?: string;
+}
 
 // ===== Attendance =====
 export interface AttendanceInput {
@@ -361,78 +353,4 @@ export interface PagedResult<T> {
   pageNumber: number;
   pageSize: number;
   totalPages: number;
-}
-
-export interface KpiLine {
-  kpiAssignmentDetailId: number;
-  kpiName: string;
-  description: string;
-  weightPercentage: number;
-  employeeMarks: number | null;
-  employeeComments: string | null;
-  supervisorMarks: number | null;
-  supervisorComments: string | null;
-  hodMarks: number | null;
-  hodComments: string | null;
-}
-
-export interface EvaluationMarkInput {
-  kpiAssignmentDetailId: number;
-  marks: number;
-  comments: string;
-}
-
-export interface KpiLine {
-  kpiAssignmentDetailId: number;
-  kpiName: string;
-  description: string;
-  weightPercentage: number;
-  employeeMarks: number | null;
-  employeeComments: string | null;
-  supervisorMarks: number | null;
-  supervisorComments: string | null;
-  hodMarks: number | null;
-  hodComments: string | null;
-}
-
-export interface ResultDetail {
-  assignmentId: number;
-  employeeId: number;
-  employeeName: string;
-  departmentName: string | null;
-  designationName: string | null;
-  periodId: number;
-  periodName: string;
-  selfEvaluationId: number | null;
-  selfEvaluationStatus: string | null;
-  supervisorEvaluationId: number | null;
-  supervisorEvaluationStatus: string | null;
-  hodEvaluationId: number | null;
-  hodEvaluationStatus: string | null;
-  kpiLines: KpiLine[];
-  competencies: {
-    competencyId: number;
-    name: string;
-    employeeRating?: number;
-    supervisorRating?: number;
-    hodRating?: number;
-  }[];
-  achievements: Achievement[];
-  attendancePenalty: number | null;
-  isProcessed: boolean;
-  resultId: number | null;
-  kpiScore: number | null;
-  competencyScore: number | null;
-  achievementScore: number | null;
-  finalScore: number | null;
-  grade: string | null;
-  recommendationTypes: string[];
-  recommendationNote: string | null;
-  managerDecision: string | null;
-  managerComments: string | null;
-}
-
-export interface CreateHodEvaluationRequest {
-  selfEvaluationId: number;
-  details: EvaluationMarkInput[];
 }
