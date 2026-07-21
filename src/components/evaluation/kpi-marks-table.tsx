@@ -1,27 +1,44 @@
 "use client";
 
 import { useState } from "react";
-import type { KpiDetail } from "@/types";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import type { ResultDetail, EvaluationMarkInput } from "@/types";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Save } from "lucide-react";
 
 export function KpiMarksTable({
-  details,
+  result,
   role,
   onSave,
 }: {
-  details: KpiDetail[];
+  result: ResultDetail | null;
   role: "Supervisor" | "HOD";
-  onSave: (marks: { detailId: number; score: number }[]) => Promise<void>;
+  onSave: (marks: EvaluationMarkInput[]) => Promise<void>;
 }) {
+  const kpiLines = result?.kpiLines ?? [];
+
   const [scores, setScores] = useState<Record<number, string>>(() => {
     const initial: Record<number, string> = {};
-    details.forEach((d) => {
-      const existing = role === "Supervisor" ? d.supervisorScore : d.hodScore;
-      if (existing !== undefined) initial[d.detailId] = String(existing);
+    kpiLines.forEach((d) => {
+      const existing = role === "Supervisor" ? d.supervisorMarks : d.hodMarks;
+      if (existing !== null && existing !== undefined) {
+        initial[d.kpiAssignmentDetailId] = String(existing);
+      }
     });
     return initial;
   });
@@ -31,7 +48,11 @@ export function KpiMarksTable({
     setIsSaving(true);
     try {
       await onSave(
-        details.map((d) => ({ detailId: d.detailId, score: Number(scores[d.detailId] ?? 0) }))
+        kpiLines.map((d) => ({
+          kpiAssignmentDetailId: d.kpiAssignmentDetailId,
+          marks: Number(scores[d.kpiAssignmentDetailId] ?? 0),
+          comments: "",
+        })),
       );
     } finally {
       setIsSaving(false);
@@ -42,7 +63,9 @@ export function KpiMarksTable({
     <Card>
       <CardHeader>
         <CardTitle>Employee response — KPI marks</CardTitle>
-        <CardDescription>Enter your {role} score (0–100) for each KPI.</CardDescription>
+        <CardDescription>
+          Enter your {role} score (0–100) for each KPI.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
@@ -55,22 +78,42 @@ export function KpiMarksTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {details.map((d) => (
-              <TableRow key={d.detailId}>
+            {kpiLines.map((d) => (
+              <TableRow key={d.kpiAssignmentDetailId}>
                 <TableCell className="max-w-[220px]">
                   <p className="truncate font-medium">{d.kpiName}</p>
-                  <p className="truncate text-xs text-muted-foreground">{d.description}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {d.description}
+                  </p>
                 </TableCell>
-                <TableCell className="font-mono-data text-xs">{d.weightPercentage}%</TableCell>
-                <TableCell className="font-mono-data">{d.employeeScore ?? "—"}</TableCell>
+                <TableCell className="font-mono-data text-xs">
+                  {d.weightPercentage}%
+                </TableCell>
+                <TableCell className="font-mono-data">
+                  {d.employeeMarks ?? "—"}
+                </TableCell>
                 <TableCell>
                   <Input
                     type="number"
                     min={0}
                     max={100}
                     className="w-24"
-                    value={scores[d.detailId] ?? ""}
-                    onChange={(e) => setScores((p) => ({ ...p, [d.detailId]: e.target.value }))}
+                    value={scores[d.kpiAssignmentDetailId] ?? ""}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const id = d.kpiAssignmentDetailId;
+
+                      if (raw === "") {
+                        setScores((p) => ({ ...p, [id]: "" }));
+                        return;
+                      }
+
+                      const num = Number(raw);
+                      if (Number.isNaN(num)) return;
+
+                      const clamped = Math.min(100, Math.max(0, num));
+                      setScores((p) => ({ ...p, [id]: String(clamped) }));
+                    }}
                   />
                 </TableCell>
               </TableRow>
@@ -78,7 +121,11 @@ export function KpiMarksTable({
           </TableBody>
         </Table>
         <Button className="mt-4" onClick={handleSave} disabled={isSaving}>
-          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {isSaving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
           Save {role} marks
         </Button>
       </CardContent>

@@ -5,13 +5,28 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import apiClient from "@/lib/apiClient";
 import { useAuth } from "@/lib/auth-context";
-import type { KpiAssignment, Competency, AchievementType, Achievement, ResultDetail } from "@/types";
+import type {
+  KpiAssignment,
+  Competency,
+  AchievementType,
+  Achievement,
+  ResultDetail,
+  EvaluationMarkInput,
+} from "@/types";
 import { ROLE } from "@/types";
-import { PageHeader, EmptyState, StatusBadge } from "@/components/shared/display";
+import {
+  PageHeader,
+  EmptyState,
+  StatusBadge,
+} from "@/components/shared/display";
 import { KpiMarksTable } from "@/components/evaluation/kpi-marks-table";
 import { CompetenciesForm } from "@/components/evaluation/competencies-form";
 import { AchievementsForm } from "@/components/evaluation/achievements-form";
-import { GradeCard, RecommendationForm, ReportButtons } from "@/components/evaluation/grade-and-actions";
+import {
+  GradeCard,
+  RecommendationForm,
+  ReportButtons,
+} from "@/components/evaluation/grade-and-actions";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -25,19 +40,23 @@ export default function EmployeeDetailPage() {
 
   const [assignments, setAssignments] = useState<KpiAssignment[] | null>(null);
   const [selected, setSelected] = useState<KpiAssignment | null>(null);
-  const [result, setResult] = useState<ResultDetail | null>(null);
+  const [result, setResult] = useState<ResultDetail | any | null>(null);
   const [competencies, setCompetencies] = useState<Competency[]>([]);
-  const [achievementTypes, setAchievementTypes] = useState<AchievementType[]>([]);
+  const [achievementTypes, setAchievementTypes] = useState<AchievementType[]>(
+    [],
+  );
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const evaluatorRole: "Supervisor" | "HOD" = user?.roleId === ROLE.HOD ? "HOD" : "Supervisor";
+  const evaluatorRole: "Supervisor" | "HOD" =
+    user?.roleId === ROLE.HOD ? "HOD" : "Supervisor";
 
   const loadResult = useCallback(async (assignmentId: number) => {
     try {
       const res = await apiClient.getEvaluationDetail(assignmentId);
+      console.log("Evaluation detail:", res.data);
       setResult(res.data);
-      setAchievements(res.data.achievements.details ?? []);
+      setAchievements(res.data.achievements ?? []);
     } catch {
       setResult(null);
     }
@@ -57,6 +76,7 @@ export default function EmployeeDetailPage() {
         setCompetencies(compRes.data);
         setAchievementTypes(typeRes.data);
         const latest = kpiRes.data[0] ?? null;
+        console.log("Latest assignment:", latest);
         setSelected(latest);
         if (latest) await loadResult(latest.assignmentId);
       } catch {
@@ -67,13 +87,22 @@ export default function EmployeeDetailPage() {
     })();
   }, [employeeId, loadResult]);
 
-  async function handleSaveMarks(marks: { detailId: number; score: number }[]) {
-    if (!selected) return;
+  async function handleSaveMarks(details: EvaluationMarkInput[]) {
+    if (!selected || !result?.selfEvaluationId) {
+      toast.error("This employee hasn't submitted a self-evaluation yet.");
+      return;
+    }
     try {
       if (evaluatorRole === "Supervisor") {
-        await apiClient.saveSupervisorEvaluation(selected.assignmentId, marks);
+        await apiClient.saveSupervisorEvaluation(
+          result.selfEvaluationId,
+          details,
+        );
+      } else if (result.hodEvaluationId) {
+        // an HOD evaluation already exists — update instead of create
+        await apiClient.updateHodEvaluation(result.hodEvaluationId, details);
       } else {
-        await apiClient.saveHodEvaluation(selected.assignmentId, marks);
+        await apiClient.saveHodEvaluation(result.selfEvaluationId, details);
       }
       toast.success(`${evaluatorRole} marks saved.`);
       loadResult(selected.assignmentId);
@@ -82,10 +111,16 @@ export default function EmployeeDetailPage() {
     }
   }
 
-  async function handleSaveCompetencies(ratings: { competencyId: number; score: number }[]) {
+  async function handleSaveCompetencies(
+    ratings: { competencyId: number; score: number }[],
+  ) {
     if (!selected) return;
     try {
-      await apiClient.saveCompetencyEvaluation(selected.assignmentId, evaluatorRole, ratings);
+      await apiClient.saveCompetencyEvaluation(
+        selected.assignmentId,
+        evaluatorRole,
+        ratings,
+      );
       toast.success("Competency ratings saved.");
     } catch {
       toast.error("Could not save competency ratings.");
@@ -100,7 +135,10 @@ export default function EmployeeDetailPage() {
   }) {
     if (!selected) return;
     try {
-      const res = await apiClient.addAchievement({ assignmentId: selected.assignmentId, ...input });
+      const res = await apiClient.addAchievement({
+        assignmentId: selected.assignmentId,
+        ...input,
+      });
       setAchievements((prev) => [...prev, res.data]);
       toast.success("Achievement added.");
     } catch {
@@ -119,21 +157,26 @@ export default function EmployeeDetailPage() {
   }
 
   async function handleGenerateGrade() {
-    if (!selected) return;
+    if (!selected || !result?.hodEvaluationId) return;
     try {
-      // Grade generation requires the HOD evaluation id; in this flow we key off the assignment.
-      await apiClient.processGrade(selected.assignmentId);
+      await apiClient.processGrade(result.hodEvaluationId);
       toast.success("Grade generated.");
       loadResult(selected.assignmentId);
     } catch {
-      toast.error("Could not generate grade. Make sure all evaluations are submitted first.");
+      toast.error(
+        "Could not generate grade. Make sure all evaluations are submitted first.",
+      );
     }
   }
 
   async function handleSaveRecommendation(comment: string) {
     if (!selected) return;
     try {
-      await apiClient.addRecommendation(selected.assignmentId, "General", comment);
+      await apiClient.addRecommendation(
+        selected.assignmentId,
+        "General",
+        comment,
+      );
       toast.success("Comment saved.");
     } catch {
       toast.error("Could not save comment.");
@@ -162,7 +205,11 @@ export default function EmployeeDetailPage() {
           title="No KPIs created for this employee yet"
           description="Create KPIs for this evaluation period to begin the review cycle."
           action={
-            <Button onClick={() => router.push(`/create-kpi?employeeId=${employeeId}`)}>
+            <Button
+              onClick={() =>
+                router.push(`/create-kpi?employeeId=${employeeId}`)
+              }
+            >
               <PlusCircle className="h-4 w-4" /> Create KPIs
             </Button>
           }
@@ -184,7 +231,11 @@ export default function EmployeeDetailPage() {
             </TabsList>
 
             <TabsContent value="marks">
-              <KpiMarksTable details={selected.details} role={evaluatorRole} onSave={handleSaveMarks} />
+              <KpiMarksTable
+                result={result}
+                role={evaluatorRole}
+                onSave={handleSaveMarks}
+              />
             </TabsContent>
 
             <TabsContent value="competencies">
@@ -205,12 +256,17 @@ export default function EmployeeDetailPage() {
             </TabsContent>
 
             <TabsContent value="grade" className="space-y-6">
-              <GradeCard grade={result?.grade ?? null} onGenerate={handleGenerateGrade} />
+              <GradeCard
+                grade={result?.grade ?? null}
+                onGenerate={handleGenerateGrade}
+              />
               <RecommendationForm
-                initialComment={result?.recommendation}
+                initialComment={result?.recommendationNote} // was result?.recommendation
                 onSave={(comment) => handleSaveRecommendation(comment)}
               />
-              {result?.grade && <ReportButtons resultId={selected.assignmentId} />}
+              {result?.grade && (
+                <ReportButtons resultId={selected.assignmentId} />
+              )}
             </TabsContent>
           </Tabs>
         </div>

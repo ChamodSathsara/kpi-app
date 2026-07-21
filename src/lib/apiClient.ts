@@ -212,21 +212,39 @@ getMyTeam() {
   }
 
   // ===================== Supervisor / HOD evaluations =====================
-  saveSupervisorEvaluation(assignmentId: number, marks: EvaluationMarkInput[]) {
-    return this.post("/api/supervisor-evaluations", { assignmentId, marks });
-  }
+  // saveSupervisorEvaluation(assignmentId: number, marks: EvaluationMarkInput[]) {
+  //   return this.post("/api/supervisor-evaluations", { assignmentId, marks });
+  // }
+
+  saveSupervisorEvaluation(assignmentId: number, details: EvaluationMarkInput[]) {
+  return this.post(`/api/supervisor-evaluations/${assignmentId}`, { details });
+}
+
+
+
   updateSupervisorEvaluation(id: number, assignmentId: number, marks: EvaluationMarkInput[]) {
     return this.put(`/api/supervisor-evaluations/${id}`, { assignmentId, marks });
   }
   submitSupervisorEvaluation(id: number) {
     return this.post(`/api/supervisor-evaluations/${id}/submit`);
   }
-  saveHodEvaluation(assignmentId: number, marks: EvaluationMarkInput[]) {
-    return this.post("/api/hod-evaluations", { assignmentId, marks });
-  }
-  updateHodEvaluation(id: number, assignmentId: number, marks: EvaluationMarkInput[]) {
-    return this.put(`/api/hod-evaluations/${id}`, { assignmentId, marks });
-  }
+  // saveHodEvaluation(assignmentId: number, marks: EvaluationMarkInput[]) {
+  //   return this.post("/api/hod-evaluations", { assignmentId, marks });
+  // }
+
+  saveHodEvaluation(selfEvaluationId: number, details: EvaluationMarkInput[]) {
+  return this.post(`/api/hod-evaluations`, { selfEvaluationId, details });
+}
+//   saveHodEvaluation(assignmentId: number, details: EvaluationMarkInput[]) {
+//   return this.post(`/api/hod-evaluations/${assignmentId}`, { details });
+// }
+  // updateHodEvaluation(id: number, assignmentId: number, marks: EvaluationMarkInput[]) {
+  //   return this.put(`/api/hod-evaluations/${id}`, { assignmentId, marks });
+  // }
+
+  updateHodEvaluation(hodEvaluationId: number, details: EvaluationMarkInput[]) {
+  return this.put(`/api/hod-evaluations/${hodEvaluationId}`, { details });
+}
   submitHodEvaluation(id: number) {
     return this.post(`/api/hod-evaluations/${id}/submit`);
   }
