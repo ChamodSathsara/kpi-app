@@ -436,3 +436,9 @@ export interface CreateHodEvaluationRequest {
   selfEvaluationId: number;
   details: EvaluationMarkInput[];
 }
+
+export interface SubmitCompetencyEvaluationInput {
+  competencyId: number;
+  score: number;
+  remarks: string;
+}

@@ -112,14 +112,24 @@ export default function EmployeeDetailPage() {
   }
 
   async function handleSaveCompetencies(
-    ratings: { competencyId: number; score: number }[],
+    ratings: { competencyId: number; score: number; remarks: string }[],
   ) {
-    if (!selected) return;
+    if (!result?.hodEvaluationId) {
+      toast.error(
+        "Competency scoring is only available once an HOD evaluation exists.",
+      );
+      return;
+    }
     try {
-      await apiClient.saveCompetencyEvaluation(
-        selected.assignmentId,
-        evaluatorRole,
-        ratings,
+      await Promise.all(
+        ratings.map((r) =>
+          apiClient.saveCompetencyScore(
+            result.hodEvaluationId,
+            r.competencyId,
+            r.score,
+            r.remarks,
+          ),
+        ),
       );
       toast.success("Competency ratings saved.");
     } catch {
@@ -241,7 +251,6 @@ export default function EmployeeDetailPage() {
             <TabsContent value="competencies">
               <CompetenciesForm
                 competencies={competencies}
-                evaluatorRole={evaluatorRole}
                 onSave={handleSaveCompetencies}
               />
             </TabsContent>
