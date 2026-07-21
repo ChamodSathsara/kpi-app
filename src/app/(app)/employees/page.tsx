@@ -49,7 +49,7 @@ export default function EmployeesPage() {
           const initials =
             `${m.firstName?.[0] ?? ""}${m.lastName?.[0] ?? ""}`.toUpperCase();
           return (
-            <Link key={index} href={`/employees/${m.employeeId}`}>
+            <Link key={index} href={`/employees/${m.userId}`}>
               <Card className="h-full transition-shadow hover:shadow-md">
                 <CardContent className="flex items-start gap-3 pt-5">
                   <Avatar className="h-11 w-11">

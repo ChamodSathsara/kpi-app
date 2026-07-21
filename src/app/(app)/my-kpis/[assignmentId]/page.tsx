@@ -6,7 +6,13 @@ import Link from "next/link";
 import apiClient from "@/lib/apiClient";
 import type { KpiAssignment } from "@/types";
 import { StatusBadge } from "@/components/shared/display";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,11 +26,13 @@ export default function MyKpiDetailPage() {
   const router = useRouter();
 
   const [assignment, setAssignment] = useState<KpiAssignment | null>(null);
-  const [scores, setScores] = useState<Record<number, string>>({});
+  // const [scores, setScores] = useState<Record<number, string>>({});
   const [evaluationStatus, setEvaluationStatus] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [scores, setScores] = useState<Record<number, string>>({});
+  const [comments, setComments] = useState<Record<number, string>>({});
 
   useEffect(() => {
     if (!assignmentId) return;
@@ -37,10 +45,13 @@ export default function MyKpiDetailPage() {
           const evalRes = await apiClient.getSelfEvaluation(assignmentId);
           setEvaluationStatus(evalRes.data.status);
           const initialScores: Record<number, string> = {};
+          const initialComments: Record<number, string> = {};
           evalRes.data.kpiDetails?.forEach((d) => {
-            if (d.employeeScore !== undefined) initialScores[d.detailId] = String(d.employeeScore);
+            if (d.employeeScore !== undefined)
+              initialScores[d.detailId] = String(d.employeeScore);
           });
           setScores(initialScores);
+          setComments(initialComments);
         } catch {
           // no self-evaluation yet — that's fine, start blank
         }
@@ -58,40 +69,54 @@ export default function MyKpiDetailPage() {
     setScores((prev) => ({ ...prev, [detailId]: value }));
   }
 
-  function buildMarks() {
+  function buildDetails() {
     if (!assignment) return [];
     return assignment.details.map((d) => ({
-      detailId: d.detailId,
-      score: Number(scores[d.detailId] ?? 0),
+      kpiAssignmentDetailId: d.detailId,
+      employeeMarks: Number(scores[d.detailId] ?? 0),
+      comments: comments[d.detailId] ?? "",
     }));
   }
 
   async function handleSave(submit: boolean) {
     if (!assignment) return;
-    const marks = buildMarks();
-    if (marks.some((m) => Number.isNaN(m.score) || m.score < 0 || m.score > 100)) {
+    const details = buildDetails();
+    if (
+      details.some(
+        (d) =>
+          Number.isNaN(d.employeeMarks) ||
+          d.employeeMarks < 0 ||
+          d.employeeMarks > 100,
+      )
+    ) {
       toast.error("Enter a score between 0 and 100 for every KPI.");
       return;
     }
+    const payload = { assignmentId: assignment.assignmentId, details };
     submit ? setIsSubmitting(true) : setIsSaving(true);
     try {
-      await apiClient.saveSelfEvaluation(assignment.assignmentId, marks);
       if (submit) {
-        await apiClient.submitSelfEvaluation(assignment.assignmentId);
+        await apiClient.submitSelfEvaluation(payload);
         setEvaluationStatus("Submitted");
         toast.success("Self evaluation submitted.");
       } else {
+        await apiClient.saveSelfEvaluation(payload);
         setEvaluationStatus("Draft");
         toast.success("Marks saved as draft.");
       }
     } catch (err) {
       let message = "Could not save your marks.";
-      if (axios.isAxiosError(err)) message = err.response?.data?.message || message;
+      if (axios.isAxiosError(err))
+        message = err.response?.data?.message || message;
       toast.error(message);
     } finally {
       setIsSaving(false);
       setIsSubmitting(false);
     }
+  }
+
+  function handleCommentChange(detailId: number, value: string) {
+    setComments((prev) => ({ ...prev, [detailId]: value }));
   }
 
   if (isLoading) {
@@ -117,9 +142,12 @@ export default function MyKpiDetailPage() {
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight">{assignment.periodName}</h1>
+          <h1 className="font-display text-2xl font-bold tracking-tight">
+            {assignment.periodName}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Assigned by {assignment.createdByName ?? "your manager"} · {assignment.totalWeight}% total weight
+            Assigned by {assignment.createdByName ?? "your manager"} ·{" "}
+            {assignment.totalWeight}% total weight
           </p>
         </div>
         <StatusBadge status={evaluationStatus ?? assignment.status} />
@@ -132,7 +160,9 @@ export default function MyKpiDetailPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <CardTitle className="text-base">{d.kpiName}</CardTitle>
-                  <CardDescription className="mt-1">{d.description}</CardDescription>
+                  <CardDescription className="mt-1">
+                    {d.description}
+                  </CardDescription>
                 </div>
                 <span className="shrink-0 rounded-md bg-muted px-2 py-1 font-mono-data text-xs font-semibold">
                   {d.weightPercentage}%
@@ -140,18 +170,38 @@ export default function MyKpiDetailPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="max-w-[160px] space-y-1.5">
-                <Label htmlFor={`score-${d.detailId}`}>Your score (0–100)</Label>
-                <Input
-                  id={`score-${d.detailId}`}
-                  type="number"
-                  min={0}
-                  max={100}
-                  disabled={isLocked}
-                  value={scores[d.detailId] ?? ""}
-                  onChange={(e) => handleScoreChange(d.detailId, e.target.value)}
-                  placeholder="e.g. 85"
-                />
+              <div className="grid gap-4 sm:grid-cols-[160px_1fr]">
+                <div className="space-y-1.5">
+                  <Label htmlFor={`score-${d.detailId}`}>
+                    Your score (0–100)
+                  </Label>
+                  <Input
+                    id={`score-${d.detailId}`}
+                    type="number"
+                    min={0}
+                    max={100}
+                    disabled={isLocked}
+                    value={scores[d.detailId] ?? ""}
+                    onChange={(e) =>
+                      handleScoreChange(d.detailId, e.target.value)
+                    }
+                    placeholder="e.g. 85"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor={`comment-${d.detailId}`}>
+                    Comments (optional)
+                  </Label>
+                  <Input
+                    id={`comment-${d.detailId}`}
+                    disabled={isLocked}
+                    value={comments[d.detailId] ?? ""}
+                    onChange={(e) =>
+                      handleCommentChange(d.detailId, e.target.value)
+                    }
+                    placeholder="Add a note about this KPI"
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -160,12 +210,27 @@ export default function MyKpiDetailPage() {
 
       {!isLocked && (
         <div className="sticky bottom-20 mt-6 flex flex-col gap-2 rounded-xl border border-border bg-card p-4 shadow-lg sm:flex-row sm:justify-end md:bottom-4">
-          <Button variant="outline" onClick={() => handleSave(false)} disabled={isSaving || isSubmitting}>
-            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          <Button
+            variant="outline"
+            onClick={() => handleSave(false)}
+            disabled={isSaving || isSubmitting}
+          >
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
             Save draft
           </Button>
-          <Button onClick={() => handleSave(true)} disabled={isSaving || isSubmitting}>
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          <Button
+            onClick={() => handleSave(true)}
+            disabled={isSaving || isSubmitting}
+          >
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
             Submit evaluation
           </Button>
         </div>

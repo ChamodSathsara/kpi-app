@@ -80,6 +80,10 @@ export interface CreateKpiDetailInput {
   weightPercentage: number;
 }
 
+export interface UpdateKpiRequest {
+  details: CreateKpiDetailInput[];
+}
+
 export interface CreateKpiRequest {
   employeeId: number;
   periodId: number;
@@ -102,9 +106,21 @@ export interface SelfEvaluation {
   kpiDetails?: KpiDetail[];
 }
 
+// ===== Self / Supervisor / HOD Evaluations =====
+export interface SelfEvaluationDetailInput {
+  kpiAssignmentDetailId: number;
+  employeeMarks: number;
+  comments: string;
+}
+
+export interface SaveSelfEvaluationRequest {
+  assignmentId: number;
+  details: SelfEvaluationDetailInput[];
+}
+
 // ===== Periods =====
 export interface EvaluationPeriod {
-  periodName: ReactNode;
+  periodName: any;
   periodId: number;
   name: string;
   year: number;

@@ -27,6 +27,8 @@ import type {
   UpdateUserInput,
   CreateEvaluationPeriodInput,
   UpdateEvaluationPeriodInput,
+  UpdateKpiRequest,
+  SaveSelfEvaluationRequest,
 } from "@/types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://localhost:5001";
@@ -139,12 +141,12 @@ class ApiClient {
   getKpiById(assignmentId: number) {
     return this.get<KpiAssignment>(`/api/kpis/${assignmentId}`);
   }
-  saveSelfEvaluation(assignmentId: number, marks: EvaluationMarkInput[]) {
-    return this.post<SelfEvaluation>("/api/self-evaluations/save", { assignmentId, marks });
-  }
-  submitSelfEvaluation(assignmentId: number) {
-    return this.post<SelfEvaluation>("/api/self-evaluations/submit", { assignmentId });
-  }
+  saveSelfEvaluation(payload: SaveSelfEvaluationRequest ) {
+  return this.post<SelfEvaluation>("/api/self-evaluations/save", payload);
+}
+submitSelfEvaluation(payload: SaveSelfEvaluationRequest) {
+  return this.post<SelfEvaluation>("/api/self-evaluations/submit", payload);
+}
   getSelfEvaluation(assignmentId: number) {
     return this.get<SelfEvaluation>(`/api/self-evaluations/${assignmentId}`);
   }
@@ -152,15 +154,30 @@ class ApiClient {
     return this.get<ResultDetail>(`/api/results/${assignmentId}`);
   }
 
-  // ===================== Team (HOD / Supervisor) =====================
-  getMyTeam() {
+ // ===================== Team (HOD / Supervisor) =====================
+getMyTeam() {
     return this.get<TeamMember[]>("/api/team/my-team");
+  }
+  getTeamKpis() {
+    return this.get<KpiAssignment[]>("/api/kpis/my-team");
   }
   getKpisForEmployee(employeeId: number) {
     return this.get<KpiAssignment[]>(`/api/kpis/employee/${employeeId}`);
   }
   createKpi(payload: CreateKpiRequest) {
     return this.post<KpiAssignment>("/api/kpis", payload);
+  }
+  updateKpi(assignmentId: number, payload: UpdateKpiRequest) {
+    return this.put<KpiAssignment>(`/api/kpis/${assignmentId}`, payload);
+  }
+  deleteKpi(assignmentId: number) {
+    return this.del<null>(`/api/kpis/${assignmentId}`);
+  }
+  publishKpi(assignmentId: number) {
+    return this.post<KpiAssignment>(`/api/kpis/${assignmentId}/publish`);
+  }
+  revertKpiToDraft(assignmentId: number) {
+    return this.post<KpiAssignment>(`/api/kpis/${assignmentId}/draft`);
   }
 
 // ===================== Evaluation Periods =====================
